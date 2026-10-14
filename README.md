@@ -2,11 +2,16 @@
 
 Raw GitHub issues → agent-ready tickets with blocking edges. Built for the mattpack flow: its tickets feed `/implement` directly.
 
+## Requirements
+
+- Python 3.10+
+- `gh` CLI optional (paste text works without it)
+
 ## 60-second demo
 
 ```bash
 python3 -m venv .venv && .venv/bin/pip install typer pytest
-export PYTHONPATH=src
+export PYTHONPATH=src   # or: .venv/bin/pip install -e .
 .venv/bin/python -m pytest -q   # 9 passed
 
 # from live issues
@@ -15,11 +20,23 @@ gh issue list --json number,title,body | .venv/bin/python -m triage.cli triage
 # or pasted text
 printf '### Crash on save\nSteps:\n1. open\n2. save\nExpected ok.\n' \
   | .venv/bin/python -m triage.cli triage
+```
 
-# tickets for the ready set
+Output:
+
+```text
+[ready-for-agent] #p1 Crash on save — has repro shape: steps/expected/actual
+```
+
+Tickets for the ready set (non-ready issues are counted and skipped):
+
+```bash
 gh issue list --json number,title,body \
   | .venv/bin/python -m triage.cli to-tickets --feature login --out-dir out/
+# wrote 1 tickets (2 non-ready skipped)  →  out/issues/01-crash.md
 ```
+
+Each ticket file carries What to build / Blocked by / Status / acceptance checkboxes, numbered blockers-first.
 
 ## Roles
 
@@ -31,7 +48,11 @@ gh issue list --json number,title,body \
 | `ready-for-human` | needs a decision, not execution |
 | `wontfix` | duplicate or out of scope |
 
-`to-tickets` emits `.scratch/<feature>/issues/NN-slug.md` (What / Blocked by / Status / checkboxes), fix tickets first, test tickets last and blocked by all.
+Fix/infra tickets sort first and unblocked (the frontier); feature tickets follow blocked by them; test tickets last, blocked by all.
+
+## Safety
+
+Read-only by default: `triage` prints, `to-tickets` prints unless `--out-dir` is given. No network calls, no GitHub API writes.
 
 ## Design
 
