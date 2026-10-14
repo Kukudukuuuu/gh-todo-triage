@@ -42,3 +42,16 @@ def from_paste(raw: str) -> list[dict]:
         if line.startswith(("- ", "* ")):
             out.append({"id": f"p{n}", "title": line[2:].strip(), "body": ""})
     return out
+
+
+def load(raw: str) -> list[dict]:
+    """Dispatch adapter: gh-JSON list, `###` sections, `- ` lines, or one bare line."""
+    raw = (raw or "").strip()
+    if not raw:
+        raise ValueError("empty input")
+    if raw.startswith("["):
+        return from_gh_json(raw)
+    pasted = from_paste(raw)
+    if pasted:
+        return pasted
+    return [{"id": "p1", "title": raw.splitlines()[0][:120], "body": ""}]

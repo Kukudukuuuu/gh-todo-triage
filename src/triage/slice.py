@@ -19,10 +19,14 @@ def to_tickets(items: list[dict]) -> list[dict]:
     rest = [i for i in items if i not in fixes and i not in tests]
     ordered = fixes + rest + tests
     tickets = []
+    fix_titles = [f["title"] for f in fixes]
     for it in ordered:
-        blocked = [f["title"] for f in fixes if f is not it]
-        if it in tests:
+        if it in fixes:
+            blocked: list[str] = []  # fixes are the frontier; they block, they aren't blocked
+        elif it in tests:
             blocked = [o["title"] for o in ordered if o is not it and o not in tests]
+        else:
+            blocked = list(fix_titles)
         tickets.append({
             "title": it["title"],
             "slug": _slug(it["title"]),

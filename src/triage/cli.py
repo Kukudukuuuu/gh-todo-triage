@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 
 import typer
@@ -9,37 +10,31 @@ import typer
 from .classify import triage
 from .render import write_markdown
 from .slice import to_tickets
-from .sources import from_gh_json, from_paste
+from .sources import load
 
 app = typer.Typer(help="Raw issues to agent-ready tickets")
 
 
 def _read_input(path: str | None) -> list[dict]:
-    raw = open(path).read() if path else sys.stdin.read()
-    raw = raw.strip()
-    if not raw:
-        typer.echo("empty input", err=True)
+    if path:
+        with open(path) as f:
+            raw = f.read()
+    else:
+        raw = sys.stdin.read()
+    try:
+        return load(raw)
+    except ValueError as e:
+        typer.echo(str(e), err=True)
         raise typer.Exit(2)
-    if raw.startswith("["):
-        return from_gh_json(raw)
-    pasted = from_paste(raw)
-    if pasted:
-        return pasted
-    # single bare line = one issue with no body
-    return [{"id": "p1", "title": raw.splitlines()[0][:120], "body": ""}]
 
 
-@app.command()
+@app.command(name="triage")
 def triage_cmd(
     path: str | None = typer.Argument(None, help="File with gh JSON or pasted text (default: stdin)"),
     as_json: bool = typer.Option(False, "--json"),
 ) -> None:
     """Classify each Raw issue into a triage role with reasons."""
-    try:
-        issues = _read_input(path)
-    except ValueError as e:
-        typer.echo(str(e), err=True)
-        raise typer.Exit(2)
+    issues = _read_input(path)
     verdicts = [{"id": i["id"], "title": i["title"], **triage(i)} for i in issues]
     if as_json:
         typer.echo(json.dumps(verdicts, indent=2))
@@ -55,11 +50,7 @@ def to_tickets_cmd(
     out_dir: str | None = typer.Option(None, "--out-dir", help="Write files here (default: print)"),
 ) -> None:
     """Emit numbered ticket files for the ready-for-agent set."""
-    try:
-        issues = _read_input(path)
-    except ValueError as e:
-        typer.echo(str(e), err=True)
-        raise typer.Exit(2)
+    issues = _read_input(path)
     ready, skipped = [], 0
     for i in issues:
         if triage(i)["role"] == "ready-for-agent":
@@ -69,7 +60,6 @@ def to_tickets_cmd(
     tickets = to_tickets(ready)
     files = write_markdown(tickets, feature)
     if out_dir:
-        import os
         for rel, text in files.items():
             dest = os.path.join(out_dir, os.path.relpath(rel, f".scratch/{feature}"))
             os.makedirs(os.path.dirname(dest), exist_ok=True)

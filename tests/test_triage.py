@@ -18,7 +18,9 @@ def test_roles_fire():
     assert triage({"title": "It broke?", "body": "What version fixes this? Which OS?"})["role"] == "needs-info"
     assert triage({"title": "x", "body": "y"})["role"] == "needs-info"
     assert triage({"title": "RFC: new API shape", "body": "Should we adopt this design? Decision needed."})["role"] == "ready-for-human"
+    assert triage({"title": "Please decide X", "body": "Team, decide the default for the new flag please."})["role"] == "ready-for-human"
     assert triage({"title": "Dark mode please", "body": "Would love a dark theme option."})["role"] == "needs-triage"
+    assert triage({"title": "Crash", "body": "Steps:\n1. open\n2. save\nExpected ok."})["role"] == "ready-for-agent"
 
 
 def test_tie_prefers_safer_role():
@@ -58,6 +60,7 @@ def test_slice_orders_blockers_first():
     assert titles[-1] == "Add login tests"
     assert tickets[1]["blocked_by"] == ["Fix CI setup"]
     assert "Fix CI setup" in tickets[-1]["blocked_by"]
+    assert tickets[0]["blocked_by"] == []  # fixes are the frontier
 
 
 def test_render_template():
@@ -69,7 +72,7 @@ def test_render_template():
 
 def test_cli_triage_json():
     raw = json.dumps([{"number": 1, "title": "Crash", "body": "Steps to repro: a. Expected b, actual c."}])
-    res = runner.invoke(app, ["triage-cmd", "--json"], input=raw)
+    res = runner.invoke(app, ["triage", "--json"], input=raw)
     assert res.exit_code == 0, res.output
     assert json.loads(res.output)[0]["role"] == "ready-for-agent"
 
