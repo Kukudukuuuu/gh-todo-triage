@@ -1,6 +1,6 @@
 # gh-todo-triage
 
-Raw GitHub issues → agent-ready tickets with blocking edges. Built for the mattpack flow: its tickets feed `/implement` directly.
+Raw GitHub issues → ordered tickets with blocking edges, ready to hand to an AI coding agent one by one.
 
 ## Requirements
 
