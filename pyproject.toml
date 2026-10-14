@@ -1,0 +1,13 @@
+[project]
+name = "gh-todo-triage"
+version = "0.1.0"
+description = "Raw GitHub issues to agent-ready tickets"
+requires-python = ">=3.10"
+dependencies = ["typer>=0.9"]
+
+[build-system]
+requires = ["setuptools>=61"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools.packages.find]
+where = ["src"]
